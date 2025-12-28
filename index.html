@@ -5,6 +5,7 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <title>Textarea</title>
+
 <style>
   * {
     margin: 0;
@@ -23,6 +24,19 @@
     }
   }
 
+  /* Property label */
+  .property-badge {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    font: 12px system-ui;
+    letter-spacing: 0.08em;
+    opacity: 0.5;
+    user-select: none;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
   article {
     outline: none;
     padding: 18px max(18px, calc(50vw - 400px));
@@ -37,7 +51,12 @@
     overflow-wrap: break-word;
   }
 </style>
+
+<!-- Property Notice -->
+<div class="property-badge">PROPERTY OF JIAN MALUMAY 2026</div>
+
 <article contenteditable="plaintext-only" spellcheck></article>
+
 <script>
   const article = document.querySelector('article')
   article.addEventListener('input', debounce(500, save))
@@ -55,8 +74,6 @@
     navigator.serviceWorker.register('sw.js')
   }
 
-  console.log('%cGitHub https://github.com/antonmedv/textarea', 'font-size: 16px; border: 1px solid lightblue; border-radius: 12px; padding: 10px 14px; ')
-
   async function load() {
     try {
       if (location.hash !== '') await set(location.hash)
@@ -65,7 +82,7 @@
         if (article.textContent) history.replaceState({}, '', await get())
         article.focus()
       }
-    } catch (e) {
+    } catch {
       article.textContent = ''
       article.removeAttribute('style')
       article.focus()
@@ -76,7 +93,7 @@
   async function save() {
     const hash = await get()
     if (location.hash !== hash) history.replaceState({}, '', hash)
-    try { localStorage.setItem('hash', hash) } catch (e) {}
+    try { localStorage.setItem('hash', hash) } catch {}
     updateTitle()
   }
 
@@ -124,39 +141,5 @@
       clearTimeout(timer)
       timer = setTimeout(() => fn(...args), ms)
     }
-  }
-
-  async function download() {
-    updateTitle()
-    const doc = document.documentElement.cloneNode(true)
-    doc.querySelectorAll('script').forEach(s => s.remove())
-    doc.querySelector('article').removeAttribute('contenteditable')
-    const html = '<!DOCTYPE html>\n' + doc.outerHTML
-
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await showSaveFilePicker({
-          suggestedName: document.title + '.html',
-          types: [{
-            description: 'HTML file',
-            accept: {'text/html': ['.html']},
-          }],
-        })
-        const writable = await handle.createWritable()
-        await writable.write(html)
-        await writable.close()
-        return
-      } catch (e) {
-        if (e.name === 'AbortError') return
-      }
-    }
-
-    const blob = new Blob([html], {type: 'text/html'})
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = document.title + '.html'
-    a.click()
-    URL.revokeObjectURL(url)
   }
 </script>
