@@ -1,61 +1,89 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
 <title>Textarea</title>
 
 <style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
   html {
-    color-scheme: light dark;
-    background-color: #fff;
-    color: #161616;
-
-    @media (prefers-color-scheme: dark) {
-      background-color: #000;
-      color: #fff;
-    }
+    color-scheme: dark;
+    background: #000;
+    color: #00ff66;
   }
 
-  /* Property label */
+  /* Linux terminal look */
+  body {
+    background: #000;
+    color: #00ff66;
+  }
+
+  /* Property label (different color) */
   .property-badge {
     position: fixed;
     top: 12px;
     right: 16px;
-    font: 12px system-ui;
+    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     letter-spacing: 0.08em;
-    opacity: 0.5;
+    color: #ffcc00;            /* <-- different color */
+    opacity: 0.9;
     user-select: none;
     pointer-events: none;
     z-index: 9999;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
   }
 
   article {
     outline: none;
-    padding: 18px max(18px, calc(50vw - 400px));
+    padding: 18px max(18px, calc(50vw - 520px));
     width: 100%;
     min-height: 100vh;
-    font: 18px / 1.5 system-ui;
+
+    font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     tab-size: 4;
+
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+
     white-space: pre-wrap;
-    text-wrap-style: stable;
     overflow-wrap: break-word;
+
+    caret-color: #00ff66;
   }
+
+  /* Selection highlight like terminal */
+  article::selection {
+    background: rgba(0, 255, 102, 0.25);
+  }
+
+  /* Optional subtle scanline / glow feel */
+  .crt {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 255, 102, 0.03) 3px
+      );
+    mix-blend-mode: screen;
+    opacity: 0.35;
+  }
+
+  /* Keep badge above CRT */
+  .property-badge { z-index: 10000; }
 </style>
 
-<!-- Property Notice -->
+<div class="crt"></div>
 <div class="property-badge">PROPERTY OF JIAN MALUMAY 2026</div>
 
-<article contenteditable="plaintext-only" spellcheck></article>
+<article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
   const article = document.querySelector('article')
@@ -82,7 +110,7 @@
         if (article.textContent) history.replaceState({}, '', await get())
         article.focus()
       }
-    } catch {
+    } catch (e) {
       article.textContent = ''
       article.removeAttribute('style')
       article.focus()
@@ -93,7 +121,7 @@
   async function save() {
     const hash = await get()
     if (location.hash !== hash) history.replaceState({}, '', hash)
-    try { localStorage.setItem('hash', hash) } catch {}
+    try { localStorage.setItem('hash', hash) } catch (e) {}
     updateTitle()
   }
 
@@ -141,5 +169,36 @@
       clearTimeout(timer)
       timer = setTimeout(() => fn(...args), ms)
     }
+  }
+
+  async function download() {
+    updateTitle()
+    const doc = document.documentElement.cloneNode(true)
+    doc.querySelectorAll('script').forEach(s => s.remove())
+    doc.querySelector('article').removeAttribute('contenteditable')
+    const html = '<!DOCTYPE html>\n' + doc.outerHTML
+
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await showSaveFilePicker({
+          suggestedName: document.title + '.html',
+          types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(html)
+        await writable.close()
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return
+      }
+    }
+
+    const blob = new Blob([html], {type: 'text/html'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = document.title + '.html'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 </script>
