@@ -1,4 +1,4 @@
-# [textarea.my](https://textarea.my)
+# [malumay.com](https://malumay.com)
 
 A _minimalist_ text editor that lives entirely in your browser and stores everything in the URL hash.
 
@@ -13,7 +13,7 @@ A _minimalist_ text editor that lives entirely in your browser and stores everyt
 - Start your document with `# Title` to set a custom page title
 - Your data lives in localStorage AND the URL. Double the fun!
 - Add a `style` attribute to the `<article>` tag via DevTools. It'll be saved in the URL too!
-- Add [`/qr`](https://textarea.my/qr#c0_NSy1KLElVSFQIDFJIzk9JVUjLL1KozC8tUsjLL0ktVgQA) to get a QR code for the current page
+- Add [`/qr`](https://malumay.com/qr#c0_NSy1KLElVSFQIDFJIzk9JVUjLL1KozC8tUsjLL0ktVgQA) to get a QR code for the current page
 
 ## Examples
 
