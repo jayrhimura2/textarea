@@ -8,400 +8,197 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  :root{
-    --bg: #0b0f14;
-    --panel: #0f1620;
-    --gutter: #0c121a;
-    --gutter-border: #1b2838;
-
-    --text: #d6deeb;
-    --muted: #6b7f97;
-
-    /* Notepad++-ish token colors (dark) */
-    --comment: #5fbf7a;
-    --tag: #c792ea;
-    --attr: #82aaff;
-    --string: #ecc48d;
-    --number: #89ddff;
-    --punct: #a6accd;
-
-    --caret: #00ff66;
-    --selection: rgba(130, 170, 255, 0.22);
-    --current-line: rgba(255,255,255,0.04);
-  }
-
   html {
     color-scheme: dark;
-    background: var(--bg);
-    color: var(--text);
+    background: #000;
+    color: #00ff66;
   }
 
+  /* Linux terminal look */
   body {
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    background: #000;
+    color: #00ff66;
   }
 
+  /* Property label (different color) */
   .property-badge {
     position: fixed;
     top: 12px;
     right: 16px;
     font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     letter-spacing: 0.08em;
-    color: #ffcc00;
+    color: #ffcc00;            /* <-- different color */
     opacity: 0.9;
     user-select: none;
     pointer-events: none;
-    z-index: 10000;
+    z-index: 9999;
     text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
   }
 
-  /* Editor layout */
-  .wrap {
+  article {
+    outline: none;
+    padding: 18px max(18px, calc(50vw - 520px));
     width: 100%;
     min-height: 100vh;
-    padding: 18px max(18px, calc(50vw - 560px));
-  }
 
-  .editor {
-    position: relative;
-    display: grid;
-    grid-template-columns: 64px 1fr;
-    border: 1px solid var(--gutter-border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--panel);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-  }
-
-  .gutter {
-    background: var(--gutter);
-    border-right: 1px solid var(--gutter-border);
-    padding: 12px 10px;
-    color: var(--muted);
-    text-align: right;
-    user-select: none;
-    overflow: hidden;
-    white-space: pre;
-  }
-
-  .code {
-    position: relative;
-    height: calc(100vh - 36px); /* feels like an editor */
-    min-height: 520px;
-    overflow: hidden;
-  }
-
-  /* Highlight layer */
-  .highlight {
-    position: absolute;
-    inset: 0;
-    padding: 12px 14px;
-    white-space: pre;
-    overflow: auto;
+    font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     tab-size: 4;
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+
+    caret-color: #00ff66;
   }
 
-  /* Text input layer (transparent text) */
-  textarea.input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    padding: 12px 14px;
-    border: 0;
-    outline: none;
-    background: transparent;
-    color: transparent;              /* <- important: highlight layer shows text */
-    caret-color: var(--caret);
-    font: inherit;
-    line-height: inherit;
-    resize: none;
-    white-space: pre;
-    overflow: auto;
-    tab-size: 4;
+  /* Selection highlight like terminal */
+  article::selection {
+    background: rgba(0, 255, 102, 0.25);
   }
 
-  textarea::selection { background: var(--selection); }
-
-  /* Current line highlight (simple overlay strip) */
-  .current-line {
-    position: absolute;
-    left: 0; right: 0;
-    height: 1.6em;
-    background: var(--current-line);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Tokens */
-  .t-comment { color: var(--comment); }
-  .t-tag     { color: var(--tag); }
-  .t-attr    { color: var(--attr); }
-  .t-string  { color: var(--string); }
-  .t-number  { color: var(--number); }
-  .t-punct   { color: var(--punct); }
-
-  /* Subtle CRT overlay (optional) */
+  /* Optional subtle scanline / glow feel */
   .crt {
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 1;
     background:
-      radial-gradient(ellipse at center, rgba(0,255,102,0.06) 0%, rgba(0,0,0,0) 60%),
+      radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
       repeating-linear-gradient(
         to bottom,
         rgba(0, 0, 0, 0) 0px,
         rgba(0, 0, 0, 0) 2px,
-        rgba(0, 255, 102, 0.02) 3px
+        rgba(0, 255, 102, 0.03) 3px
       );
     mix-blend-mode: screen;
-    opacity: 0.32;
+    opacity: 0.35;
   }
+
+  /* Keep badge above CRT */
+  .property-badge { z-index: 10000; }
 </style>
 
 <div class="crt"></div>
 <div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
 
-<div class="wrap">
-  <div class="editor">
-    <pre class="gutter" aria-hidden="true">1</pre>
-
-    <div class="code">
-      <div class="current-line" aria-hidden="true"></div>
-      <pre class="highlight" aria-hidden="true"></pre>
-      <textarea class="input" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea>
-    </div>
-  </div>
-</div>
+<article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
-  const gutter = document.querySelector('.gutter');
-  const hi = document.querySelector('.highlight');
-  const ta = document.querySelector('textarea.input');
-  const currentLine = document.querySelector('.current-line');
-
-  ta.addEventListener('input', debounce(300, () => { render(); save(); }));
-  ta.addEventListener('scroll', syncScroll);
-  ta.addEventListener('click', updateCurrentLine);
-  ta.addEventListener('keyup', updateCurrentLine);
-  ta.addEventListener('blur', save);
-
-  addEventListener('DOMContentLoaded', load);
-  addEventListener('hashchange', load);
-
-  // Ctrl/Cmd+S download
+  const article = document.querySelector('article')
+  article.addEventListener('input', debounce(500, save))
+  article.addEventListener('blur', save)
+  addEventListener('DOMContentLoaded', load)
+  addEventListener('hashchange', load)
+  addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))
   addEventListener('keydown', e => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      download();
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault()
+      download()
     }
-  });
-
-  // Tab inserts tab (like Notepad++)
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = ta.selectionStart, end = ta.selectionEnd;
-      ta.setRangeText('\t', start, end, 'end');
-      render();
-      save();
-    }
-  });
-
-  // service worker
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
-  function syncScroll() {
-    hi.scrollTop = ta.scrollTop;
-    hi.scrollLeft = ta.scrollLeft;
-
-    // gutter follows vertical scroll visually
-    gutter.scrollTop = ta.scrollTop;
-    updateCurrentLine();
-  }
-
-  function render() {
-    const text = ta.value || '';
-    hi.innerHTML = highlight(text);
-    gutter.textContent = makeLineNumbers(countLines(text));
-    updateTitle();
-    updateCurrentLine();
-  }
-
-  function countLines(text) {
-    // at least 1 line
-    return (text.match(/\n/g) || []).length + 1;
-  }
-
-  function makeLineNumbers(n) {
-    let out = '';
-    for (let i = 1; i <= n; i++) out += i + (i === n ? '' : '\n');
-    return out;
-  }
-
-  function updateCurrentLine() {
-    // approximate current line based on selectionStart
-    const before = ta.value.slice(0, ta.selectionStart);
-    const lineIndex = (before.match(/\n/g) || []).length; // 0-based
-    const lineTop = lineIndex * parseFloat(getComputedStyle(ta).lineHeight);
-
-    // position inside the scrolling textarea content
-    currentLine.style.top = (12 + lineTop - ta.scrollTop) + 'px';
-  }
-
-  function updateTitle() {
-    const match = ta.value.match(/^\n*#(.+)\n/);
-    document.title = match?.[1]?.trim() ?? 'copy/paste here - JRM2026';
+  })
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
   }
 
   async function load() {
     try {
-      if (location.hash !== '') await set(location.hash);
+      if (location.hash !== '') await set(location.hash)
       else {
-        await set(localStorage.getItem('hash') ?? '');
-        if (ta.value) history.replaceState({}, '', await get());
-        ta.focus();
+        await set(localStorage.getItem('hash') ?? '')
+        if (article.textContent) history.replaceState({}, '', await get())
+        article.focus()
       }
     } catch (e) {
-      ta.value = '';
-      ta.removeAttribute('style');
-      ta.focus();
+      article.textContent = ''
+      article.removeAttribute('style')
+      article.focus()
     }
-    render();
+    updateTitle()
   }
 
   async function save() {
-    const hash = await get();
-    if (location.hash !== hash) history.replaceState({}, '', hash);
-    try { localStorage.setItem('hash', hash); } catch (e) {}
-    updateTitle();
+    const hash = await get()
+    if (location.hash !== hash) history.replaceState({}, '', hash)
+    try { localStorage.setItem('hash', hash) } catch (e) {}
+    updateTitle()
   }
 
   async function set(hash) {
-    if (!hash) return;
-    const [content, style] = (await decompress(hash.slice(1))).split('\x00');
-    ta.value = content ?? '';
-    if (style) ta.setAttribute('style', style);
+    if (!hash) return
+    const [content, style] = (await decompress(hash.slice(1))).split('\x00')
+    article.textContent = content
+    if (style) article.setAttribute('style', style)
   }
 
   async function get() {
-    const style = ta.getAttribute('style');
-    const content = ta.value + (style !== null ? '\x00' + style : '');
-    return '#' + await compress(content);
+    const style = article.getAttribute('style')
+    const content = article.textContent + (style !== null ? '\x00' + style : '')
+    return '#' + await compress(content)
+  }
+
+  function updateTitle() {
+    const match = article.textContent.match(/^\n*#(.+)\n/)
+    document.title = match?.[1] ?? 'copy/paste here - JRM2026'
   }
 
   async function compress(string) {
-    const byteArray = new TextEncoder().encode(string);
-    const stream = new CompressionStream('deflate-raw');
-    const writer = stream.writable.getWriter();
-    writer.write(byteArray);
-    writer.close();
-    const buffer = await new Response(stream.readable).arrayBuffer();
-    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'});
+    const byteArray = new TextEncoder().encode(string)
+    const stream = new CompressionStream('deflate-raw')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
   }
 
   async function decompress(b64) {
-    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'});
-    const stream = new DecompressionStream('deflate-raw');
-    const writer = stream.writable.getWriter();
-    writer.write(byteArray);
-    writer.close();
-    const buffer = await new Response(stream.readable).arrayBuffer();
-    return new TextDecoder().decode(buffer);
+    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
+    const stream = new DecompressionStream('deflate-raw')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new TextDecoder().decode(buffer)
   }
 
   function debounce(ms, fn) {
-    let timer;
+    let timer
     return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), ms);
-    };
+      clearTimeout(timer)
+      timer = setTimeout(() => fn(...args), ms)
+    }
   }
 
   async function download() {
-    updateTitle();
-    const doc = document.documentElement.cloneNode(true);
-    // remove live script and CRT
-    doc.querySelectorAll('script').forEach(s => s.remove());
-    const t = doc.querySelector('textarea.input');
-    const h = doc.querySelector('.highlight');
-    const cl = doc.querySelector('.current-line');
-    // make it a static page with the actual content visible
-    if (t) {
-      t.style.color = 'var(--text)';
-      t.removeAttribute('spellcheck');
-    }
-    if (h) h.remove();
-    if (cl) cl.remove();
-
-    const html = '<!DOCTYPE html>\n' + doc.outerHTML;
+    updateTitle()
+    const doc = document.documentElement.cloneNode(true)
+    doc.querySelectorAll('script').forEach(s => s.remove())
+    doc.querySelector('article').removeAttribute('contenteditable')
+    const html = '<!DOCTYPE html>\n' + doc.outerHTML
 
     if ('showSaveFilePicker' in window) {
       try {
         const handle = await showSaveFilePicker({
           suggestedName: document.title + '.html',
           types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(html);
-        await writable.close();
-        return;
+        })
+        const writable = await handle.createWritable()
+        await writable.write(html)
+        await writable.close()
+        return
       } catch (e) {
-        if (e.name === 'AbortError') return;
+        if (e.name === 'AbortError') return
       }
     }
 
-    const blob = new Blob([html], {type: 'text/html'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = document.title + '.html';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // ---------- Syntax highlight (simple Notepad++-like) ----------
-  // Detect HTML/XML-ish if it contains tags; otherwise just escape.
-  function highlight(src) {
-    const escaped = escapeHtml(src);
-
-    // If it doesn't look like markup, keep plain
-    if (!/[<][A-Za-z!?/]/.test(src)) return escaped;
-
-    let s = escaped;
-
-    // comments: <!-- ... -->
-    s = s.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="t-comment">$1</span>');
-
-    // strings: "..." or '...'
-    s = s.replace(/(".*?"|'.*?')/g, '<span class="t-string">$1</span>');
-
-    // tag names + brackets
-    // Example: <add ...> , </configuration>
-    s = s.replace(/(&lt;\/?)([A-Za-z0-9:_-]+)(?=[\s&gt;])/g,
-      '$1<span class="t-tag">$2</span>'
-    );
-
-    // attributes: name=
-    s = s.replace(/([A-Za-z0-9:_-]+)(=)/g,
-      '<span class="t-attr">$1</span><span class="t-punct">$2</span>'
-    );
-
-    // numbers
-    s = s.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="t-number">$1</span>');
-
-    // punctuation: &lt; &gt; / =
-    s = s.replace(/(&lt;|&gt;|\/)/g, '<span class="t-punct">$1</span>');
-
-    return s;
-  }
-
-  function escapeHtml(str) {
-    return str
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
+    const blob = new Blob([html], {type: 'text/html'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = document.title + '.html'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 </script>
