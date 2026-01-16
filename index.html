@@ -14,25 +14,44 @@
     color: #00ff66;
   }
 
-  /* Linux terminal look */
   body {
     background: #000;
     color: #00ff66;
   }
 
-  /* Property label (different color) */
-  .property-badge {
+  /* Terminal-style HUD (top-right) */
+  .terminal-hud {
     position: fixed;
     top: 12px;
     right: 16px;
-    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    letter-spacing: 0.08em;
-    color: #ffcc00;            /* <-- different color */
-    opacity: 0.9;
+    z-index: 10000;
     user-select: none;
     pointer-events: none;
-    z-index: 9999;
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
+
+    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.02em;
+    color: #00ff66;
+
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 255, 102, 0.25);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.55);
+    box-shadow: 0 0 18px rgba(0, 255, 102, 0.08);
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+    max-width: min(420px, calc(100vw - 32px));
+  }
+
+  .terminal-hud .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .terminal-hud .dot { margin: 0 6px; opacity: 0.9; }
+  .terminal-hud .muted { opacity: 0.75; }
+  .terminal-hud .label { opacity: 0.85; }
+  .terminal-hud .value { opacity: 1; }
+
+  /* Property label (NOW GREEN) */
+  .property-badge {
+    /* kept for compatibility, but now same green terminal color */
+    color: #00ff66;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
   }
 
   article {
@@ -53,12 +72,8 @@
     caret-color: #00ff66;
   }
 
-  /* Selection highlight like terminal */
-  article::selection {
-    background: rgba(0, 255, 102, 0.25);
-  }
+  article::selection { background: rgba(0, 255, 102, 0.25); }
 
-  /* Optional subtle scanline / glow feel */
   .crt {
     position: fixed;
     inset: 0;
@@ -75,130 +90,176 @@
     mix-blend-mode: screen;
     opacity: 0.35;
   }
-
-  /* Keep badge above CRT */
-  .property-badge { z-index: 10000; }
 </style>
 
 <div class="crt"></div>
-<div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
+
+<!-- Terminal-style info box -->
+<div class="terminal-hud" aria-hidden="true">
+  <div class="line"><span class="dot">•</span><span class="property-badge">PROPERTY OF JRM2026</span> <span class="muted">—</span> <span class="muted">i@malumay.com</span></div>
+  <div class="line"><span class="label">Public IP:</span> <span class="value" id="publicIp">checking...</span></div>
+  <div class="line muted" id="hudTime">System time: --</div>
+</div>
 
 <article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
-  const article = document.querySelector('article')
-  article.addEventListener('input', debounce(500, save))
-  article.addEventListener('blur', save)
-  addEventListener('DOMContentLoaded', load)
-  addEventListener('hashchange', load)
-  addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))
+  const article = document.querySelector('article');
+
+  article.addEventListener('input', debounce(500, save));
+  article.addEventListener('blur', save);
+  addEventListener('DOMContentLoaded', load);
+  addEventListener('hashchange', load);
+  addEventListener('load', () => new MutationObserver(save).observe(article, { attributeFilter: ['style'] }));
   addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-      e.preventDefault()
-      download()
+      e.preventDefault();
+      download();
     }
-  })
+  });
+
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('sw.js');
   }
 
+  // ---- HUD: Public IP + time ----
+  const ipEl = document.getElementById('publicIp');
+  const timeEl = document.getElementById('hudTime');
+
+  function updateHudTime() {
+    const d = new Date();
+    // Terminal-ish: "Fri Jan 16 02:54:50 UTC 2026" style (local timezone, readable)
+    timeEl.textContent = 'System time: ' + d.toString();
+  }
+  updateHudTime();
+  setInterval(updateHudTime, 1000);
+
+  async function getPublicIp() {
+    // Try ipify first, then fallbacks
+    const endpoints = [
+      'https://api.ipify.org?format=json',
+      'https://ifconfig.co/json',
+      'https://ipinfo.io/json'
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        const ip = data.ip || data.IPv4 || data.address;
+        if (ip) return ip;
+      } catch (e) {
+        // try next endpoint
+      }
+    }
+    return null;
+  }
+
+  (async () => {
+    const ip = await getPublicIp();
+    ipEl.textContent = ip ?? 'unavailable';
+  })();
+
+  // ---- Existing app logic ----
   async function load() {
     try {
-      if (location.hash !== '') await set(location.hash)
+      if (location.hash !== '') await set(location.hash);
       else {
-        await set(localStorage.getItem('hash') ?? '')
-        if (article.textContent) history.replaceState({}, '', await get())
-        article.focus()
+        await set(localStorage.getItem('hash') ?? '');
+        if (article.textContent) history.replaceState({}, '', await get());
+        article.focus();
       }
     } catch (e) {
-      article.textContent = ''
-      article.removeAttribute('style')
-      article.focus()
+      article.textContent = '';
+      article.removeAttribute('style');
+      article.focus();
     }
-    updateTitle()
+    updateTitle();
   }
 
   async function save() {
-    const hash = await get()
-    if (location.hash !== hash) history.replaceState({}, '', hash)
-    try { localStorage.setItem('hash', hash) } catch (e) {}
-    updateTitle()
+    const hash = await get();
+    if (location.hash !== hash) history.replaceState({}, '', hash);
+    try { localStorage.setItem('hash', hash); } catch (e) {}
+    updateTitle();
   }
 
   async function set(hash) {
-    if (!hash) return
-    const [content, style] = (await decompress(hash.slice(1))).split('\x00')
-    article.textContent = content
-    if (style) article.setAttribute('style', style)
+    if (!hash) return;
+    const [content, style] = (await decompress(hash.slice(1))).split('\x00');
+    article.textContent = content;
+    if (style) article.setAttribute('style', style);
   }
 
   async function get() {
-    const style = article.getAttribute('style')
-    const content = article.textContent + (style !== null ? '\x00' + style : '')
-    return '#' + await compress(content)
+    const style = article.getAttribute('style');
+    const content = article.textContent + (style !== null ? '\x00' + style : '');
+    return '#' + await compress(content);
   }
 
   function updateTitle() {
-    const match = article.textContent.match(/^\n*#(.+)\n/)
-    document.title = match?.[1] ?? 'copy/paste here - JRM2026'
+    const match = article.textContent.match(/^\n*#(.+)\n/);
+    document.title = match?.[1] ?? 'copy/paste here - JRM2026';
   }
 
   async function compress(string) {
-    const byteArray = new TextEncoder().encode(string)
-    const stream = new CompressionStream('deflate-raw')
-    const writer = stream.writable.getWriter()
-    writer.write(byteArray)
-    writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
-    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
+    const byteArray = new TextEncoder().encode(string);
+    const stream = new CompressionStream('deflate-raw');
+    const writer = stream.writable.getWriter();
+    writer.write(byteArray);
+    writer.close();
+    const buffer = await new Response(stream.readable).arrayBuffer();
+    return new Uint8Array(buffer).toBase64({ alphabet: 'base64url' });
   }
 
   async function decompress(b64) {
-    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
-    const stream = new DecompressionStream('deflate-raw')
-    const writer = stream.writable.getWriter()
-    writer.write(byteArray)
-    writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
-    return new TextDecoder().decode(buffer)
+    const byteArray = Uint8Array.fromBase64(b64, { alphabet: 'base64url' });
+    const stream = new DecompressionStream('deflate-raw');
+    const writer = stream.writable.getWriter();
+    writer.write(byteArray);
+    writer.close();
+    const buffer = await new Response(stream.readable).arrayBuffer();
+    return new TextDecoder().decode(buffer);
   }
 
   function debounce(ms, fn) {
-    let timer
+    let timer;
     return (...args) => {
-      clearTimeout(timer)
-      timer = setTimeout(() => fn(...args), ms)
-    }
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
   }
 
   async function download() {
-    updateTitle()
-    const doc = document.documentElement.cloneNode(true)
-    doc.querySelectorAll('script').forEach(s => s.remove())
-    doc.querySelector('article').removeAttribute('contenteditable')
-    const html = '<!DOCTYPE html>\n' + doc.outerHTML
+    updateTitle();
+    const doc = document.documentElement.cloneNode(true);
+    doc.querySelectorAll('script').forEach(s => s.remove());
+    doc.querySelector('article').removeAttribute('contenteditable');
+    const html = '<!DOCTYPE html>\n' + doc.outerHTML;
 
     if ('showSaveFilePicker' in window) {
       try {
         const handle = await showSaveFilePicker({
           suggestedName: document.title + '.html',
-          types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
-        })
-        const writable = await handle.createWritable()
-        await writable.write(html)
-        await writable.close()
-        return
+          types: [{ description: 'HTML file', accept: { 'text/html': ['.html'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(html);
+        await writable.close();
+        return;
       } catch (e) {
-        if (e.name === 'AbortError') return
+        if (e.name === 'AbortError') return;
       }
     }
 
-    const blob = new Blob([html], {type: 'text/html'})
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = document.title + '.html'
-    a.click()
-    URL.revokeObjectURL(url)
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = document.title + '.html';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 </script>
