@@ -8,6 +8,12 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  :root{
+    --hud-gap: 12px;
+    --hud-w: 420px;
+    --hud-h: 0px;
+  }
+
   html {
     color-scheme: dark;
     background: #000;
@@ -19,11 +25,11 @@
     color: #00ff66;
   }
 
-  /* Terminal-style HUD (top-right) */
-  .terminal-hud {
+  /* ================= TERMINAL HUD ================= */
+  .terminal-hud{
     position: fixed;
-    top: 12px;
-    right: 16px;
+    top: var(--hud-gap);
+    right: var(--hud-gap);
     z-index: 10000;
     user-select: none;
     pointer-events: none;
@@ -33,38 +39,46 @@
     color: #00ff66;
 
     padding: 10px 12px;
-    border: 1px solid rgba(0, 255, 102, 0.25);
-    border-radius: 8px;
+    border: 1px solid rgba(0,255,102,0.25);
+    border-radius: 10px;
     background: rgba(0,0,0,0.55);
-    box-shadow: 0 0 18px rgba(0, 255, 102, 0.08);
-    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
-    max-width: min(420px, calc(100vw - 32px));
+    box-shadow: 0 0 18px rgba(0,255,102,0.08);
+    text-shadow: 0 0 10px rgba(0,255,102,0.18);
+
+    max-width: min(var(--hud-w), calc(100vw - (var(--hud-gap) * 2)));
   }
 
-  .terminal-hud .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .terminal-hud .dot { margin: 0 6px; opacity: 0.9; }
-  .terminal-hud .muted { opacity: 0.75; }
-  .terminal-hud .label { opacity: 0.85; }
-  .terminal-hud .value { opacity: 1; }
-
-  /* Property label (NOW GREEN) */
-  .property-badge {
-    /* kept for compatibility, but now same green terminal color */
-    color: #00ff66;
-    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+  .terminal-hud .line{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  article {
+  .muted{ opacity: .75; }
+  .dot{ margin-right: 6px; }
+
+  /* Mobile HUD */
+  @media (max-width: 640px){
+    .terminal-hud{
+      left: var(--hud-gap);
+      right: var(--hud-gap);
+      max-width: none;
+    }
+  }
+
+  /* ================= EDITOR ================= */
+  article{
     outline: none;
-    padding: 18px max(18px, calc(50vw - 520px));
     width: 100%;
     min-height: 100vh;
 
+    padding:
+      calc(18px + var(--hud-h) + var(--hud-gap))
+      max(18px, calc(50vw - 520px))
+      18px;
+
     font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     tab-size: 4;
-
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
 
     white-space: pre-wrap;
     overflow-wrap: break-word;
@@ -72,9 +86,12 @@
     caret-color: #00ff66;
   }
 
-  article::selection { background: rgba(0, 255, 102, 0.25); }
+  article::selection{
+    background: rgba(0,255,102,0.25);
+  }
 
-  .crt {
+  /* ================= CRT EFFECT ================= */
+  .crt{
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -83,9 +100,9 @@
       radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
       repeating-linear-gradient(
         to bottom,
-        rgba(0, 0, 0, 0) 0px,
-        rgba(0, 0, 0, 0) 2px,
-        rgba(0, 255, 102, 0.03) 3px
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,255,102,0.03) 3px
       );
     mix-blend-mode: screen;
     opacity: 0.35;
@@ -94,84 +111,101 @@
 
 <div class="crt"></div>
 
-<!-- Terminal-style info box -->
-<div class="terminal-hud" aria-hidden="true">
-  <div class="line"><span class="dot">•</span><span class="property-badge">PROPERTY OF JRM2026</span> <span class="muted">—</span> <span class="muted">i@malumay.com</span></div>
-  <div class="line"><span class="label">Public IP:</span> <span class="value" id="publicIp">checking...</span></div>
+<!-- TERMINAL HUD -->
+<div class="terminal-hud">
+  <div class="line">
+    <span class="dot">•</span>PROPERTY OF JRM2026 — i@malumay.com
+  </div>
+  <div class="line">
+    Public IP: <span id="publicIp">checking...</span>
+  </div>
+  <div class="line">
+    Country: <span id="publicCountry">checking...</span>
+  </div>
   <div class="line muted" id="hudTime">System time: --</div>
 </div>
 
 <article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
+  /* ================= HUD HEIGHT ================= */
+  const hud = document.querySelector('.terminal-hud');
+  function updateHudHeight(){
+    if(!hud) return;
+    document.documentElement
+      .style
+      .setProperty('--hud-h', Math.ceil(hud.getBoundingClientRect().height) + 'px');
+  }
+  addEventListener('load', updateHudHeight);
+  addEventListener('resize', updateHudHeight);
+  setInterval(updateHudHeight, 1500);
+
+  /* ================= TIME ================= */
+  const timeEl = document.getElementById('hudTime');
+  function updateTime(){
+    timeEl.textContent = 'System time: ' + new Date().toString();
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  /* ================= IP + COUNTRY ================= */
+  const ipEl = document.getElementById('publicIp');
+  const countryEl = document.getElementById('publicCountry');
+
+  async function getIPInfo(){
+    try{
+      const r = await fetch('https://ipinfo.io/json', { cache: 'no-store' });
+      if(!r.ok) throw new Error();
+      const j = await r.json();
+      return {
+        ip: j.ip || 'unknown',
+        country: j.country || 'unknown',
+        region: j.region || '',
+        city: j.city || ''
+      };
+    }catch(e){
+      return null;
+    }
+  }
+
+  (async ()=>{
+    const info = await getIPInfo();
+    if(info){
+      ipEl.textContent = info.ip;
+      countryEl.textContent =
+        info.country +
+        (info.city ? ' (' + info.city + ')' : '');
+    }else{
+      ipEl.textContent = 'unavailable';
+      countryEl.textContent = 'unavailable';
+    }
+  })();
+
+  /* ================= EDITOR STORAGE ================= */
   const article = document.querySelector('article');
 
   article.addEventListener('input', debounce(500, save));
   article.addEventListener('blur', save);
   addEventListener('DOMContentLoaded', load);
   addEventListener('hashchange', load);
-  addEventListener('load', () => new MutationObserver(save).observe(article, { attributeFilter: ['style'] }));
-  addEventListener('keydown', e => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+
+  addEventListener('keydown', e=>{
+    if((e.ctrlKey || e.metaKey) && e.key === 's'){
       e.preventDefault();
       download();
     }
   });
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-
-  // ---- HUD: Public IP + time ----
-  const ipEl = document.getElementById('publicIp');
-  const timeEl = document.getElementById('hudTime');
-
-  function updateHudTime() {
-    const d = new Date();
-    // Terminal-ish: "Fri Jan 16 02:54:50 UTC 2026" style (local timezone, readable)
-    timeEl.textContent = 'System time: ' + d.toString();
-  }
-  updateHudTime();
-  setInterval(updateHudTime, 1000);
-
-  async function getPublicIp() {
-    // Try ipify first, then fallbacks
-    const endpoints = [
-      'https://api.ipify.org?format=json',
-      'https://ifconfig.co/json',
-      'https://ipinfo.io/json'
-    ];
-
-    for (const url of endpoints) {
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) continue;
-
-        const data = await res.json();
-        const ip = data.ip || data.IPv4 || data.address;
-        if (ip) return ip;
-      } catch (e) {
-        // try next endpoint
-      }
-    }
-    return null;
-  }
-
-  (async () => {
-    const ip = await getPublicIp();
-    ipEl.textContent = ip ?? 'unavailable';
-  })();
-
-  // ---- Existing app logic ----
-  async function load() {
-    try {
-      if (location.hash !== '') await set(location.hash);
-      else {
+  async function load(){
+    try{
+      if(location.hash !== '') await set(location.hash);
+      else{
         await set(localStorage.getItem('hash') ?? '');
-        if (article.textContent) history.replaceState({}, '', await get());
+        if(article.textContent)
+          history.replaceState({}, '', await get());
         article.focus();
       }
-    } catch (e) {
+    }catch(e){
       article.textContent = '';
       article.removeAttribute('style');
       article.focus();
@@ -179,82 +213,66 @@
     updateTitle();
   }
 
-  async function save() {
+  async function save(){
     const hash = await get();
-    if (location.hash !== hash) history.replaceState({}, '', hash);
-    try { localStorage.setItem('hash', hash); } catch (e) {}
+    if(location.hash !== hash)
+      history.replaceState({}, '', hash);
+    try{ localStorage.setItem('hash', hash); }catch(e){}
     updateTitle();
   }
 
-  async function set(hash) {
-    if (!hash) return;
+  async function set(hash){
+    if(!hash) return;
     const [content, style] = (await decompress(hash.slice(1))).split('\x00');
     article.textContent = content;
-    if (style) article.setAttribute('style', style);
+    if(style) article.setAttribute('style', style);
   }
 
-  async function get() {
+  async function get(){
     const style = article.getAttribute('style');
-    const content = article.textContent + (style !== null ? '\x00' + style : '');
+    const content = article.textContent + (style !== null ? '\x00'+style : '');
     return '#' + await compress(content);
   }
 
-  function updateTitle() {
-    const match = article.textContent.match(/^\n*#(.+)\n/);
-    document.title = match?.[1] ?? 'copy/paste here - JRM2026';
+  function updateTitle(){
+    const m = article.textContent.match(/^\n*#(.+)\n/);
+    document.title = m?.[1] ?? 'copy/paste here - JRM2026';
   }
 
-  async function compress(string) {
-    const byteArray = new TextEncoder().encode(string);
-    const stream = new CompressionStream('deflate-raw');
-    const writer = stream.writable.getWriter();
-    writer.write(byteArray);
-    writer.close();
-    const buffer = await new Response(stream.readable).arrayBuffer();
-    return new Uint8Array(buffer).toBase64({ alphabet: 'base64url' });
+  async function compress(str){
+    const bytes = new TextEncoder().encode(str);
+    const cs = new CompressionStream('deflate-raw');
+    const w = cs.writable.getWriter();
+    w.write(bytes); w.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    return new Uint8Array(buf).toBase64({alphabet:'base64url'});
   }
 
-  async function decompress(b64) {
-    const byteArray = Uint8Array.fromBase64(b64, { alphabet: 'base64url' });
-    const stream = new DecompressionStream('deflate-raw');
-    const writer = stream.writable.getWriter();
-    writer.write(byteArray);
-    writer.close();
-    const buffer = await new Response(stream.readable).arrayBuffer();
-    return new TextDecoder().decode(buffer);
+  async function decompress(b64){
+    const bytes = Uint8Array.fromBase64(b64,{alphabet:'base64url'});
+    const ds = new DecompressionStream('deflate-raw');
+    const w = ds.writable.getWriter();
+    w.write(bytes); w.close();
+    const buf = await new Response(ds.readable).arrayBuffer();
+    return new TextDecoder().decode(buf);
   }
 
-  function debounce(ms, fn) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), ms);
+  function debounce(ms, fn){
+    let t;
+    return (...a)=>{
+      clearTimeout(t);
+      t = setTimeout(()=>fn(...a), ms);
     };
   }
 
-  async function download() {
+  async function download(){
     updateTitle();
     const doc = document.documentElement.cloneNode(true);
-    doc.querySelectorAll('script').forEach(s => s.remove());
+    doc.querySelectorAll('script').forEach(s=>s.remove());
     doc.querySelector('article').removeAttribute('contenteditable');
     const html = '<!DOCTYPE html>\n' + doc.outerHTML;
 
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await showSaveFilePicker({
-          suggestedName: document.title + '.html',
-          types: [{ description: 'HTML file', accept: { 'text/html': ['.html'] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(html);
-        await writable.close();
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') return;
-      }
-    }
-
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([html], {type:'text/html'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
