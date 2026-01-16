@@ -1,174 +1,204 @@
 <!DOCTYPE html>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000000">
-<title>terminal — JRM2026</title>
+<link rel="manifest" href="manifest.json">
+<title>copy/paste here - JRM2026</title>
 
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  :root{
-    --bg: #000000;
-
-    /* terminal colors */
-    --green: #00ff66;
-    --yellow: #ffd866;
-    --white: #eaeaea;
-    --pink: #ff79c6;
-    --blue: #66b2ff;
-    --dim: #8a8a8a;
-
-    --hud-w: 420px;
-    --gap: 14px;
-  }
-
-  html, body{
-    height: 100%;
-    background: var(--bg);
-    color: var(--white);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  }
-
-  /* ================= LAYOUT ================= */
-  .layout{
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
-  }
-
-  /* ================= LEFT TYPING AREA ================= */
-  article{
-    flex: 1;
-    padding: 18px;
-    outline: none;
+  html {
+    color-scheme: dark;
     background: #000;
-    color: var(--white);
+    color: #00ff66;
+  }
+
+  /* Linux terminal look */
+  body {
+    background: #000;
+    color: #00ff66;
+  }
+
+  /* Property label (different color) */
+  .property-badge {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.08em;
+    color: #ffcc00;            /* <-- different color */
+    opacity: 0.9;
+    user-select: none;
+    pointer-events: none;
+    z-index: 9999;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
+  }
+
+  article {
+    outline: none;
+    padding: 18px max(18px, calc(50vw - 520px));
+    width: 100%;
+    min-height: 100vh;
+
+    font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    tab-size: 4;
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+
     white-space: pre-wrap;
     overflow-wrap: break-word;
-    caret-color: var(--green);
-    font-size: 16px;
-    line-height: 1.55;
+
+    caret-color: #00ff66;
   }
 
-  article::selection{
-    background: rgba(255, 216, 102, 0.25);
+  /* Selection highlight like terminal */
+  article::selection {
+    background: rgba(0, 255, 102, 0.25);
   }
 
-  /* ================= RIGHT HUD ================= */
-  .terminal-hud{
-    width: var(--hud-w);
-    min-width: var(--hud-w);
-    background: #000;
-    border-left: 1px solid #222;
-    padding: 14px;
+  /* Optional subtle scanline / glow feel */
+  .crt {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 255, 102, 0.03) 3px
+      );
+    mix-blend-mode: screen;
+    opacity: 0.35;
   }
 
-  .line{
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .g{ color: var(--green); }
-  .y{ color: var(--yellow); }
-  .w{ color: var(--white); }
-  .p{ color: var(--pink); }
-  .b{ color: var(--blue); }
-  .d{ color: var(--dim); }
-
-  /* ================= MOBILE ================= */
-  @media (max-width: 900px){
-    .layout{
-      flex-direction: column;
-    }
-    .terminal-hud{
-      width: 100%;
-      min-width: 100%;
-      border-left: none;
-      border-bottom: 1px solid #222;
-    }
-  }
+  /* Keep badge above CRT */
+  .property-badge { z-index: 10000; }
 </style>
 
-<div class="layout">
+<div class="crt"></div>
+<div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
 
-  <!-- LEFT: TYPING AREA -->
-  <article contenteditable="plaintext-only" spellcheck="false">
-# Start typing here…
-
-  </article>
-
-  <!-- RIGHT: TERMINAL HUD -->
-  <div class="terminal-hud">
-    <div class="line g">• Property of JRM2026 v1.2 •</div>
-    <div class="line y">( email: i@malumay.com )</div>
-    <br>
-
-    <div class="line w">Welcome</div>
-    <div class="line d">System information as of <span id="hudTime"></span></div>
-    <br>
-
-    <div class="line">
-      <span class="y">System load:</span>
-      <span class="w" id="load"></span>
-    </div>
-    <div class="line">
-      <span class="y">Memory usage:</span>
-      <span class="w" id="memory"></span>
-    </div>
-    <div class="line">
-      <span class="y">Processes:</span>
-      <span class="w" id="processes"></span>
-    </div>
-    <div class="line">
-      <span class="y">Users logged in:</span>
-      <span class="w">1</span>
-    </div>
-    <div class="line">
-      <span class="y">IPv4 address:</span>
-      <span class="p" id="publicIp">checking...</span>
-    </div>
-    <div class="line">
-      <span class="y">Location:</span>
-      <span class="w" id="location">checking...</span>
-    </div>
-
-    <br>
-    <div class="line d">*** System restart required ***</div>
-  </div>
-
-</div>
+<article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
-  /* ===== TIME ===== */
-  function updateTime(){
-    document.getElementById('hudTime').textContent = new Date().toString();
+  const article = document.querySelector('article')
+  article.addEventListener('input', debounce(500, save))
+  article.addEventListener('blur', save)
+  addEventListener('DOMContentLoaded', load)
+  addEventListener('hashchange', load)
+  addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))
+  addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault()
+      download()
+    }
+  })
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
   }
-  updateTime();
-  setInterval(updateTime, 1000);
 
-  /* ===== FAKE SYSTEM STATS ===== */
-  function rnd(min,max){ return (Math.random()*(max-min)+min).toFixed(2); }
-  document.getElementById('load').textContent =
-    `${rnd(0.9,2.8)} ${rnd(0.6,2.2)} ${rnd(0.4,1.6)}`;
-  document.getElementById('memory').textContent =
-    `${Math.floor(45+Math.random()*25)}%`;
-  document.getElementById('processes').textContent =
-    Math.floor(1100+Math.random()*700);
+  async function load() {
+    try {
+      if (location.hash !== '') await set(location.hash)
+      else {
+        await set(localStorage.getItem('hash') ?? '')
+        if (article.textContent) history.replaceState({}, '', await get())
+        article.focus()
+      }
+    } catch (e) {
+      article.textContent = ''
+      article.removeAttribute('style')
+      article.focus()
+    }
+    updateTitle()
+  }
 
-  /* ===== IP + LOCATION ===== */
-  async function loadIP(){
-    try{
-      const r = await fetch('https://ipinfo.io/json',{cache:'no-store'});
-      const j = await r.json();
-      document.getElementById('publicIp').textContent = j.ip;
-      document.getElementById('location').textContent =
-        `${j.country} (${j.city}, ${j.region})`;
-    }catch(e){
-      document.getElementById('publicIp').textContent = 'unavailable';
-      document.getElementById('location').textContent = 'unavailable';
+  async function save() {
+    const hash = await get()
+    if (location.hash !== hash) history.replaceState({}, '', hash)
+    try { localStorage.setItem('hash', hash) } catch (e) {}
+    updateTitle()
+  }
+
+  async function set(hash) {
+    if (!hash) return
+    const [content, style] = (await decompress(hash.slice(1))).split('\x00')
+    article.textContent = content
+    if (style) article.setAttribute('style', style)
+  }
+
+  async function get() {
+    const style = article.getAttribute('style')
+    const content = article.textContent + (style !== null ? '\x00' + style : '')
+    return '#' + await compress(content)
+  }
+
+  function updateTitle() {
+    const match = article.textContent.match(/^\n*#(.+)\n/)
+    document.title = match?.[1] ?? 'copy/paste here - JRM2026'
+  }
+
+  async function compress(string) {
+    const byteArray = new TextEncoder().encode(string)
+    const stream = new CompressionStream('deflate-raw')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
+  }
+
+  async function decompress(b64) {
+    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
+    const stream = new DecompressionStream('deflate-raw')
+    const writer = stream.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const buffer = await new Response(stream.readable).arrayBuffer()
+    return new TextDecoder().decode(buffer)
+  }
+
+  function debounce(ms, fn) {
+    let timer
+    return (...args) => {
+      clearTimeout(timer)
+      timer = setTimeout(() => fn(...args), ms)
     }
   }
-  loadIP();
+
+  async function download() {
+    updateTitle()
+    const doc = document.documentElement.cloneNode(true)
+    doc.querySelectorAll('script').forEach(s => s.remove())
+    doc.querySelector('article').removeAttribute('contenteditable')
+    const html = '<!DOCTYPE html>\n' + doc.outerHTML
+
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await showSaveFilePicker({
+          suggestedName: document.title + '.html',
+          types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
+        })
+        const writable = await handle.createWritable()
+        await writable.write(html)
+        await writable.close()
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return
+      }
+    }
+
+    const blob = new Blob([html], {type: 'text/html'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = document.title + '.html'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 </script>
