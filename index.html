@@ -1,178 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="manifest.json">
-<title>copy/paste here - JRM2026</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>copy/paste here - JRM2026</title>
 
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body {
-  background: #000;
-  color: #00ff66;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-}
+    html {
+      color-scheme: dark;
+      background: #000;
+      color: #00ff66;
+    }
 
-/* PROPERTY LABEL */
-.property-badge {
-  position: fixed;
-  top: 12px;
-  right: 16px;
-  color: #ffffff;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 10000;
-  text-shadow: 0 0 8px rgba(255,255,255,0.25);
-  white-space: nowrap;
-}
+    body {
+      background: #000;
+      color: #00ff66;
+    }
 
-/* INFO STACK */
-.info-stack {
-  position: fixed;
-  top: 34px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 10000;
-  max-width: 90vw;
-}
+    /* PROPERTY LABEL (WHITE) */
+    .property-badge {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.08em;
+      color: #ffffff; /* WHITE */
+      opacity: 0.95;
+      user-select: none;
+      pointer-events: none;
+      z-index: 10000;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+      white-space: nowrap;
+    }
 
-/* COLOR CODING */
-.info-ip      { color: #ffcc00; } /* yellow */
-.info-country { color: #4da6ff; } /* blue */
-.info-region  { color: #ff66cc; } /* pink */
-.info-isp     { color: #33ffd7; } /* cyan */
-.info-word    { color: #00ff66; } /* green */
+    /* INFO BAR BELOW PROPERTY */
+    .info-bar {
+      position: fixed;
+      top: 32px;
+      right: 16px;
+      font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.06em;
+      opacity: 0.95;
+      user-select: none;
+      pointer-events: none;
+      z-index: 10000;
+      white-space: nowrap;
+      text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+    }
 
-/* ARTICLE */
-article {
-  outline: none;
-  padding: 90px 18px 18px;
-  min-height: 100vh;
-  font-size: 16px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  caret-color: #00ff66;
-}
+    /* COLOR CODING */
+    .info-ip      { color: #ffcc00; }  /* yellow */
+    .info-country { color: #4da6ff; }  /* blue */
+    .info-region  { color: #ff66cc; }  /* pink */
+    .info-isp     { color: #33ffd7; }  /* cyan/teal */
+    .info-word    { color: #00ff66; }  /* terminal green */
 
-article::selection {
-  background: rgba(0,255,102,0.25);
-}
+    article {
+      outline: none;
+      padding: 56px max(18px, calc(50vw - 520px)) 18px;
+      width: 100%;
+      min-height: 100vh;
+      font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      tab-size: 4;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      caret-color: #00ff66;
+    }
 
-/* CRT EFFECT */
-.crt {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background:
-    radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0,0,0,0) 0px,
-      rgba(0,0,0,0) 2px,
-      rgba(0,255,102,0.03) 3px
-    );
-  mix-blend-mode: screen;
-  opacity: 0.35;
-}
+    article::selection {
+      background: rgba(0, 255, 102, 0.25);
+    }
 
-/* MOBILE TUNING */
-@media (max-width: 600px) {
-  .property-badge {
-    font-size: 11px;
-    right: 10px;
-  }
+    /* CRT EFFECT */
+    .crt {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background:
+        radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0,0,0,0) 0px,
+          rgba(0,0,0,0) 2px,
+          rgba(0,255,102,0.03) 3px
+        );
+      mix-blend-mode: screen;
+      opacity: 0.35;
+    }
 
-  .info-stack {
-    font-size: 10px;
-    right: 10px;
-  }
-
-  article {
-    padding-top: 110px;
-    font-size: 15px;
-  }
-}
-</style>
+    .property-badge, .info-bar { z-index: 10000; }
+  </style>
 </head>
 
 <body>
+  <div class="crt"></div>
 
-<div class="crt"></div>
+  <div class="property-badge">
+    PROPERTY OF JRM2026 - i@malumay.com
+  </div>
 
-<div class="property-badge">
-  PROPERTY OF JRM2026 - i@malumay.com
-</div>
+  <div class="info-bar" id="infoBar">
+    <span class="info-ip">IP: …</span> |
+    <span class="info-country">Country: …</span> |
+    <span class="info-region">Region: …</span> |
+    <span class="info-isp">ISP: …</span> |
+    <span class="info-word">Word: …</span>
+  </div>
 
-<div class="info-stack" id="infoStack">
-  <div class="info-ip">IP: …</div>
-  <div class="info-country">Country: …</div>
-  <div class="info-region">Region: …</div>
-  <div class="info-isp">ISP: …</div>
-  <div class="info-word">Word: …</div>
-</div>
+  <article contenteditable="plaintext-only" spellcheck="false"></article>
 
-<article contenteditable="plaintext-only" spellcheck="false"></article>
+  <script>
+    const article = document.querySelector('article')
+    const infoBar = document.getElementById('infoBar')
 
-<script>
-const infoStack = document.getElementById('infoStack')
+    article.addEventListener('input', debounce(500, save))
+    article.addEventListener('blur', save)
+    addEventListener('DOMContentLoaded', load)
+    addEventListener('hashchange', load)
 
-document.addEventListener('DOMContentLoaded', () => {
-  refreshInfo()
-  setInterval(refreshInfo, 30 * 60 * 1000)
-})
-
-async function refreshInfo() {
-  let ip='…', country='…', region='…', isp='…'
-  const word = getWordOfTheDay()
-
-  try {
-    const r = await fetch('https://ipapi.co/json/')
-    if (r.ok) {
-      const j = await r.json()
-      ip = j.ip || ip
-      country = j.country_name || country
-      region = j.region || region
-      isp = j.org || isp
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
     }
-  } catch(e){}
 
-  infoStack.innerHTML = `
-    <div class="info-ip">IP: ${esc(ip)}</div>
-    <div class="info-country">Country: ${esc(country)}</div>
-    <div class="info-region">Region: ${esc(region)}</div>
-    <div class="info-isp">ISP: ${esc(isp)}</div>
-    <div class="info-word">Word: ${esc(word)}</div>
-  `
-}
+    /* IP + GEO + ISP + WORD OF THE DAY */
+    addEventListener('DOMContentLoaded', () => {
+      refreshInfoBar()
+      setInterval(refreshInfoBar, 30 * 60 * 1000)
+    })
 
-function getWordOfTheDay() {
-  const words = [
-    'lucid','tenacious','serene','resilient',
-    'vivid','pragmatic','candor','forge','anchor'
-  ]
-  const d = new Date()
-  const key = d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate()
-  return words[key % words.length]
-}
+    async function refreshInfoBar() {
+      const w = getWordOfTheDay()
+      let ip='…', country='…', region='…', isp='…'
 
-function esc(s){
-  return String(s).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
-  )
-}
-</script>
+      try {
+        const r = await fetch('https://ipapi.co/json/')
+        if (r.ok) {
+          const j = await r.json()
+          ip = j.ip ?? ip
+          country = j.country_name ?? country
+          region = j.region ?? j.region_code ?? region
+          isp = j.org ?? j.asn ?? isp
+        }
+      } catch(e){}
 
+      infoBar.innerHTML = `
+        <span class="info-ip">IP: ${esc(ip)}</span> |
+        <span class="info-country">Country: ${esc(country)}</span> |
+        <span class="info-region">Region: ${esc(region)}</span> |
+        <span class="info-isp">ISP: ${esc(isp)}</span> |
+        <span class="info-word">Word: ${esc(w.word)}</span>
+      `
+    }
+
+    function getWordOfTheDay() {
+      const words = [
+        {word:'lucid'}, {word:'tenacious'}, {word:'serene'},
+        {word:'resilient'}, {word:'vivid'}, {word:'pragmatic'},
+        {word:'candor'}, {word:'forge'}, {word:'anchor'}
+      ]
+      const d = new Date()
+      const key = d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate()
+      return words[key % words.length]
+    }
+
+    function esc(s){
+      return String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+      )
+    }
+
+    async function load() {
+      article.focus()
+    }
+
+    async function save(){}
+
+    function debounce(ms, fn){
+      let t
+      return (...a)=>{clearTimeout(t); t=setTimeout(()=>fn(...a),ms)}
+    }
+  </script>
 </body>
 </html>
