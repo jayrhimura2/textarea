@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="manifest.json">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#000000" />
+<link rel="manifest" href="manifest.json" />
 <title>copy/paste here - JRM2026</title>
 
 <style>
@@ -10,19 +10,20 @@
 
   :root{
     --hud-gap: 12px;
-    --hud-w: 420px;
+    --hud-w: 520px;
     --hud-h: 0px;
+    --green: #00ff66;
   }
 
-  html {
+  html{
     color-scheme: dark;
     background: #000;
-    color: #00ff66;
+    color: var(--green);
   }
 
-  body {
+  body{
     background: #000;
-    color: #00ff66;
+    color: var(--green);
   }
 
   /* ================= TERMINAL HUD ================= */
@@ -36,7 +37,7 @@
 
     font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     letter-spacing: 0.02em;
-    color: #00ff66;
+    color: var(--green);
 
     padding: 10px 12px;
     border: 1px solid rgba(0,255,102,0.25);
@@ -46,6 +47,7 @@
     text-shadow: 0 0 10px rgba(0,255,102,0.18);
 
     max-width: min(var(--hud-w), calc(100vw - (var(--hud-gap) * 2)));
+    overflow: hidden;
   }
 
   .terminal-hud .line{
@@ -55,9 +57,11 @@
   }
 
   .muted{ opacity: .75; }
+  .muted2{ opacity: .6; }
   .dot{ margin-right: 6px; }
+  .sep{ opacity: .7; margin: 0 6px; }
 
-  /* Mobile HUD */
+  /* Mobile HUD full width */
   @media (max-width: 640px){
     .terminal-hud{
       left: var(--hud-gap);
@@ -83,7 +87,7 @@
     white-space: pre-wrap;
     overflow-wrap: break-word;
 
-    caret-color: #00ff66;
+    caret-color: var(--green);
   }
 
   article::selection{
@@ -112,80 +116,287 @@
 <div class="crt"></div>
 
 <!-- TERMINAL HUD -->
-<div class="terminal-hud">
+<div class="terminal-hud" aria-hidden="true">
   <div class="line">
-    <span class="dot">•</span>PROPERTY OF JRM2026 — i@malumay.com
+    <span class="dot">•</span>PROPERTY OF JRM2026 <span class="sep">—</span><span class="muted">i@malumay.com</span>
   </div>
-  <div class="line">
-    Public IP: <span id="publicIp">checking...</span>
-  </div>
-  <div class="line">
-    Country: <span id="publicCountry">checking...</span>
-  </div>
+
+  <!-- Branding / Identity -->
+  <div class="line"><span class="muted">Owner:</span> Jian Malumay</div>
+  <div class="line"><span class="muted">Role:</span> Infra / Security / DevOps</div>
+  <div class="line"><span class="muted">Build:</span> JRM2026</div>
+
+  <!-- System-style -->
+  <div class="line"><span class="muted">Host:</span> <span id="hudHost">checking...</span></div>
+  <div class="line"><span class="muted">User:</span> <span id="hudUser">jrm</span></div>
+  <div class="line"><span class="muted">Shell:</span> web-term</div>
+
+  <!-- Network & location -->
+  <div class="line"><span class="muted">Public IP:</span> <span id="publicIp">checking...</span></div>
+  <div class="line"><span class="muted">Country:</span> <span id="publicCountry">checking...</span></div>
+  <div class="line"><span class="muted">Region:</span> <span id="publicRegion">checking...</span></div>
+  <div class="line"><span class="muted">City:</span> <span id="publicCity">checking...</span></div>
+  <div class="line"><span class="muted">ISP:</span> <span id="publicIsp">checking...</span></div>
+  <div class="line"><span class="muted">ASN:</span> <span id="publicAsn">checking...</span></div>
+  <div class="line"><span class="muted">TZ:</span> <span id="hudTz">checking...</span></div>
+  <div class="line"><span class="muted">Net:</span> <span id="hudNetType">checking...</span></div>
+
+  <!-- Browser as system info -->
+  <div class="line"><span class="muted">OS:</span> <span id="hudOs">checking...</span></div>
+  <div class="line"><span class="muted">Arch:</span> <span id="hudArch">checking...</span></div>
+  <div class="line"><span class="muted">Client:</span> <span id="hudClient">checking...</span></div>
+  <div class="line"><span class="muted">Screen:</span> <span id="hudScreen">checking...</span></div>
+
+  <!-- Performance / health -->
+  <div class="line"><span class="muted">Network:</span> <span id="hudOnline">checking...</span></div>
+  <div class="line"><span class="muted">Battery:</span> <span id="hudBattery">checking...</span></div>
+  <div class="line"><span class="muted">Memory:</span> <span id="hudMemory">checking...</span></div>
+
+  <!-- Optional fun -->
+  <div class="line"><span class="muted">MOTD:</span> Stay sharp. Ship clean.</div>
+  <div class="line muted2">"Talk is cheap. Show me the logs."</div>
+  <div class="line"><span class="muted">Status:</span> operational</div>
+
+  <!-- Uptime + time -->
+  <div class="line"><span class="muted">Uptime:</span> <span id="hudUptime">00:00:00</span></div>
   <div class="line muted" id="hudTime">System time: --</div>
 </div>
 
 <article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
-  /* ================= HUD HEIGHT ================= */
+  /* ================= HUD HEIGHT (prevents overlap) ================= */
   const hud = document.querySelector('.terminal-hud');
   function updateHudHeight(){
     if(!hud) return;
-    document.documentElement
-      .style
-      .setProperty('--hud-h', Math.ceil(hud.getBoundingClientRect().height) + 'px');
+    document.documentElement.style.setProperty(
+      '--hud-h',
+      Math.ceil(hud.getBoundingClientRect().height) + 'px'
+    );
   }
   addEventListener('load', updateHudHeight);
   addEventListener('resize', updateHudHeight);
   setInterval(updateHudHeight, 1500);
 
-  /* ================= TIME ================= */
+  /* ================= Time + Uptime ================= */
   const timeEl = document.getElementById('hudTime');
+  const uptimeEl = document.getElementById('hudUptime');
+  const startedAt = Date.now();
+
+  function pad2(n){ return String(n).padStart(2,'0'); }
+
   function updateTime(){
     timeEl.textContent = 'System time: ' + new Date().toString();
+
+    const s = Math.floor((Date.now() - startedAt)/1000);
+    const hh = Math.floor(s/3600);
+    const mm = Math.floor((s%3600)/60);
+    const ss = s%60;
+    uptimeEl.textContent = pad2(hh) + ':' + pad2(mm) + ':' + pad2(ss);
   }
   updateTime();
   setInterval(updateTime, 1000);
 
-  /* ================= IP + COUNTRY ================= */
-  const ipEl = document.getElementById('publicIp');
-  const countryEl = document.getElementById('publicCountry');
+  /* ================= Host/User/TZ ================= */
+  const hostEl = document.getElementById('hudHost');
+  const tzEl = document.getElementById('hudTz');
+  const userEl = document.getElementById('hudUser');
 
-  async function getIPInfo(){
-    try{
-      const r = await fetch('https://ipinfo.io/json', { cache: 'no-store' });
-      if(!r.ok) throw new Error();
-      const j = await r.json();
-      return {
-        ip: j.ip || 'unknown',
-        country: j.country || 'unknown',
-        region: j.region || '',
-        city: j.city || ''
-      };
-    }catch(e){
-      return null;
+  (function initHost(){
+    let host = localStorage.getItem('jrm_host');
+    if(!host){
+      host = 'jrm-web-' + Math.random().toString(16).slice(2,6);
+      try{ localStorage.setItem('jrm_host', host); }catch(e){}
     }
-  }
-
-  (async ()=>{
-    const info = await getIPInfo();
-    if(info){
-      ipEl.textContent = info.ip;
-      countryEl.textContent =
-        info.country +
-        (info.city ? ' (' + info.city + ')' : '');
-    }else{
-      ipEl.textContent = 'unavailable';
-      countryEl.textContent = 'unavailable';
-    }
+    hostEl.textContent = host;
   })();
 
-  /* ================= EDITOR STORAGE ================= */
+  userEl.textContent = 'jrm';
+
+  try{
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+    const offsetMin = new Date().getTimezoneOffset();
+    const sign = offsetMin <= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const oh = Math.floor(abs/60);
+    const om = abs%60;
+    tzEl.textContent = `${tz} (UTC${sign}${pad2(oh)}:${pad2(om)})`;
+  }catch(e){
+    tzEl.textContent = 'unavailable';
+  }
+
+  /* ================= Network type (heuristic) ================= */
+  const netTypeEl = document.getElementById('hudNetType');
+  function guessNetType(){
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if(!c) return 'unknown';
+    const et = c.effectiveType || '';
+    const type = c.type || '';
+    if(type) return type;
+    if(et.includes('2g')) return 'mobile (2g)';
+    if(et.includes('3g')) return 'mobile (3g)';
+    if(et.includes('4g')) return 'mobile (4g)';
+    if(et.includes('5g')) return 'mobile (5g)';
+    return et || 'unknown';
+  }
+  netTypeEl.textContent = guessNetType();
+
+  /* ================= Browser/System info ================= */
+  const osEl = document.getElementById('hudOs');
+  const archEl = document.getElementById('hudArch');
+  const clientEl = document.getElementById('hudClient');
+  const screenEl = document.getElementById('hudScreen');
+
+  const ua = navigator.userAgent || '';
+  const platform = navigator.userAgentData?.platform || navigator.platform || 'unknown';
+
+  function detectOS(){
+    const p = (platform || '').toLowerCase();
+    if(p.includes('mac')) return 'macOS';
+    if(p.includes('win')) return 'Windows';
+    if(p.includes('linux')) return 'Linux';
+    if(/android/i.test(ua)) return 'Android';
+    if(/iphone|ipad|ipod/i.test(ua)) return 'iOS';
+    return platform || 'unknown';
+  }
+
+  function detectArch(){
+    if(navigator.userAgentData && navigator.userAgentData.architecture) return navigator.userAgentData.architecture;
+    if(/arm|aarch64/i.test(ua)) return 'arm64';
+    if(/x86_64|win64|x64|amd64/i.test(ua)) return 'x86_64';
+    return 'unknown';
+  }
+
+  function detectClient(){
+    let name = 'Browser';
+    if(/Edg\//.test(ua)) name = 'Edg';
+    else if(/Chrome\//.test(ua) && !/Edg\//.test(ua)) name = 'Chrome';
+    else if(/Safari\//.test(ua) && !/Chrome\//.test(ua)) name = 'Safari';
+    else if(/Firefox\//.test(ua)) name = 'Firefox';
+
+    let ver = '';
+    if(name === 'Safari'){
+      ver = (ua.match(/Version\/([\d.]+)/)?.[1] || '');
+    }else if(name === 'Edg'){
+      ver = (ua.match(/Edg\/([\d.]+)/)?.[1] || '');
+      name = 'Edge';
+    }else{
+      ver = (ua.match(new RegExp(name + '\\/([\\d\\.]+)'))?.[1] || '');
+    }
+    ver = ver ? ver.split('.').slice(0,2).join('.') : '';
+    return ver ? `${name} ${ver}` : name;
+  }
+
+  osEl.textContent = detectOS();
+  archEl.textContent = detectArch();
+  clientEl.textContent = detectClient();
+  screenEl.textContent = `${window.screen.width}x${window.screen.height} (${window.devicePixelRatio || 1}x)`;
+
+  /* ================= Online status ================= */
+  const onlineEl = document.getElementById('hudOnline');
+  function updateOnline(){
+    onlineEl.textContent = navigator.onLine ? 'online' : 'offline';
+  }
+  updateOnline();
+  addEventListener('online', updateOnline);
+  addEventListener('offline', updateOnline);
+
+  /* ================= Battery ================= */
+  const battEl = document.getElementById('hudBattery');
+  async function initBattery(){
+    if(!('getBattery' in navigator)){
+      battEl.textContent = 'unavailable';
+      return;
+    }
+    try{
+      const b = await navigator.getBattery();
+      function render(){
+        const pct = Math.round((b.level || 0) * 100);
+        battEl.textContent = `${pct}%${b.charging ? ' (charging)' : ''}`;
+      }
+      render();
+      b.addEventListener('levelchange', render);
+      b.addEventListener('chargingchange', render);
+    }catch(e){
+      battEl.textContent = 'unavailable';
+    }
+  }
+  initBattery();
+
+  /* ================= Memory ================= */
+  const memEl = document.getElementById('hudMemory');
+  function updateMemory(){
+    const m = performance && performance.memory ? performance.memory : null;
+    if(!m){
+      memEl.textContent = 'unavailable';
+      return;
+    }
+    const usedMB = (m.usedJSHeapSize / 1048576);
+    const limMB = (m.jsHeapSizeLimit / 1048576);
+    memEl.textContent = `${usedMB.toFixed(0)} MB / ${limMB.toFixed(0)} MB`;
+  }
+  updateMemory();
+  setInterval(updateMemory, 3000);
+
+  /* ================= Public IP + Geo + ASN/ISP ================= */
+  const ipEl = document.getElementById('publicIp');
+  const countryEl = document.getElementById('publicCountry');
+  const regionEl = document.getElementById('publicRegion');
+  const cityEl = document.getElementById('publicCity');
+  const ispEl = document.getElementById('publicIsp');
+  const asnEl = document.getElementById('publicAsn');
+
+  async function fetchJSON(url){
+    const r = await fetch(url, { cache: 'no-store' });
+    if(!r.ok) throw new Error('http');
+    return await r.json();
+  }
+
+  async function loadNetInfo(){
+    try{
+      const j = await fetchJSON('https://ipinfo.io/json');
+      ipEl.textContent = j.ip || 'unknown';
+      countryEl.textContent = j.country || 'unknown';
+      regionEl.textContent = j.region || 'unknown';
+      cityEl.textContent = j.city || 'unknown';
+      ispEl.textContent = j.org || 'unknown';
+      asnEl.textContent = (j.org && j.org.startsWith('AS')) ? j.org.split(' ')[0] : 'unknown';
+      return;
+    }catch(e){}
+
+    try{
+      const j = await fetchJSON('https://ifconfig.co/json');
+      ipEl.textContent = j.ip || 'unknown';
+      countryEl.textContent = j.country_iso || j.country || 'unknown';
+      regionEl.textContent = j.region_name || j.region || 'unknown';
+      cityEl.textContent = j.city || 'unknown';
+      ispEl.textContent = j.asn_org || j.org || 'unknown';
+      asnEl.textContent = (j.asn ? ('AS' + j.asn) : 'unknown');
+      return;
+    }catch(e){}
+
+    try{
+      const j = await fetchJSON('https://api.ipify.org?format=json');
+      ipEl.textContent = j.ip || 'unknown';
+    }catch(e){
+      ipEl.textContent = 'unavailable';
+    }
+
+    countryEl.textContent = 'unavailable';
+    regionEl.textContent = 'unavailable';
+    cityEl.textContent = 'unavailable';
+    ispEl.textContent = 'unavailable';
+    asnEl.textContent = 'unavailable';
+  }
+
+  loadNetInfo().finally(updateHudHeight);
+
+  /* ================= Persistent editor logic ================= */
   const article = document.querySelector('article');
 
   article.addEventListener('input', debounce(500, save));
   article.addEventListener('blur', save);
+
   addEventListener('DOMContentLoaded', load);
   addEventListener('hashchange', load);
 
@@ -201,8 +412,7 @@
       if(location.hash !== '') await set(location.hash);
       else{
         await set(localStorage.getItem('hash') ?? '');
-        if(article.textContent)
-          history.replaceState({}, '', await get());
+        if(article.textContent) history.replaceState({}, '', await get());
         article.focus();
       }
     }catch(e){
@@ -215,8 +425,7 @@
 
   async function save(){
     const hash = await get();
-    if(location.hash !== hash)
-      history.replaceState({}, '', hash);
+    if(location.hash !== hash) history.replaceState({}, '', hash);
     try{ localStorage.setItem('hash', hash); }catch(e){}
     updateTitle();
   }
