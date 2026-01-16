@@ -27,17 +27,37 @@
     right: 16px;
     font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     letter-spacing: 0.08em;
-    color: #ffcc00;            /* <-- different color */
+    color: #ffcc00;
     opacity: 0.9;
     user-select: none;
     pointer-events: none;
     z-index: 9999;
     text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
+    white-space: nowrap;
+  }
+
+  /* Info bar (IP / location / word of the day) */
+  .info-bar {
+    position: fixed;
+    top: 12px;
+    left: 16px;
+    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.06em;
+    color: #00ff66;
+    opacity: 0.9;
+    user-select: none;
+    pointer-events: none;
+    z-index: 10000;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   article {
     outline: none;
-    padding: 18px max(18px, calc(50vw - 520px));
+    padding: 56px max(18px, calc(50vw - 520px)) 18px; /* <-- more top padding for fixed bars */
     width: 100%;
     min-height: 100vh;
 
@@ -76,17 +96,20 @@
     opacity: 0.35;
   }
 
-  /* Keep badge above CRT */
-  .property-badge { z-index: 10000; }
+  /* Keep fixed UI above CRT */
+  .property-badge, .info-bar { z-index: 10000; }
 </style>
 
 <div class="crt"></div>
+<div class="info-bar" id="infoBar">IP: … | Location: … | Word: …</div>
 <div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
 
 <article contenteditable="plaintext-only" spellcheck="false"></article>
 
 <script>
   const article = document.querySelector('article')
+  const infoBar = document.getElementById('infoBar')
+
   article.addEventListener('input', debounce(500, save))
   article.addEventListener('blur', save)
   addEventListener('DOMContentLoaded', load)
@@ -101,6 +124,62 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
   }
+
+  // --- NEW: IP + Geo + Word of the Day ---
+  addEventListener('DOMContentLoaded', () => {
+    refreshInfoBar()
+    // refresh every 30 mins (optional)
+    setInterval(refreshInfoBar, 30 * 60 * 1000)
+  })
+
+  async function refreshInfoBar() {
+    const wotd = getWordOfTheDay()
+    let ip = '…'
+    let country = '…'
+    let region = '…'
+
+    try {
+      // Free endpoint, no key
+      const r = await fetch('https://ipapi.co/json/')
+      if (r.ok) {
+        const j = await r.json()
+        ip = j.ip ?? ip
+        country = j.country_name ?? country
+        region = j.region ?? j.region_code ?? region
+      }
+    } catch (e) {
+      // ignore if blocked/offline
+    }
+
+    infoBar.textContent = `IP: ${ip} | Location: ${country}${region && region !== '…' ? ', ' + region : ''} | Word: ${wotd.word} — ${wotd.meaning}`
+  }
+
+  function getWordOfTheDay() {
+    // Deterministic "word of the day" (same for everyone each day, offline-safe)
+    const words = [
+      { word: 'lucid', meaning: 'clear; easy to understand' },
+      { word: 'tenacious', meaning: 'persistent; not giving up' },
+      { word: 'serene', meaning: 'calm; peaceful' },
+      { word: 'keen', meaning: 'sharp; eager' },
+      { word: 'resilient', meaning: 'quick to recover' },
+      { word: 'mettle', meaning: 'courage; strength of spirit' },
+      { word: 'apt', meaning: 'appropriate; suitable' },
+      { word: 'vivid', meaning: 'bright; detailed' },
+      { word: 'pragmatic', meaning: 'practical; realistic' },
+      { word: 'candor', meaning: 'honesty; openness' },
+      { word: 'forge', meaning: 'to form by effort' },
+      { word: 'stride', meaning: 'to walk with purpose' },
+      { word: 'finesse', meaning: 'skillful handling' },
+      { word: 'anchor', meaning: 'to secure; stabilize' }
+    ]
+
+    const d = new Date()
+    // Use UTC date so it changes consistently
+    const key = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
+    const idx = key % words.length
+    return words[idx]
+  }
+  // --- END NEW ---
 
   async function load() {
     try {
@@ -176,6 +255,10 @@
     const doc = document.documentElement.cloneNode(true)
     doc.querySelectorAll('script').forEach(s => s.remove())
     doc.querySelector('article').removeAttribute('contenteditable')
+
+    // Optional: remove dynamic IP/location text on export (keep if you want)
+    // doc.getElementById('infoBar')?.remove()
+
     const html = '<!DOCTYPE html>\n' + doc.outerHTML
 
     if ('showSaveFilePicker' in window) {
