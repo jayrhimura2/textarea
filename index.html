@@ -1,287 +1,307 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="manifest.json">
-<title>copy/paste here - JRM2026</title>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <title>copy/paste here - JRM2026</title>
 
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html {
-    color-scheme: dark;
-    background: #000;
-    color: #00ff66;
-  }
-
-  /* Linux terminal look */
-  body {
-    background: #000;
-    color: #00ff66;
-  }
-
-  /* Property label (different color) */
-  .property-badge {
-    position: fixed;
-    top: 12px;
-    right: 16px;
-    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    letter-spacing: 0.08em;
-    color: #ffcc00;
-    opacity: 0.9;
-    user-select: none;
-    pointer-events: none;
-    z-index: 9999;
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
-    white-space: nowrap;
-  }
-
-  /* Info bar (IP / location / word of the day) */
-  .info-bar {
-    position: fixed;
-    top: 12px;
-    left: 16px;
-    font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    letter-spacing: 0.06em;
-    color: #00ff66;
-    opacity: 0.9;
-    user-select: none;
-    pointer-events: none;
-    z-index: 10000;
-    text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
-    max-width: calc(100vw - 32px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  article {
-    outline: none;
-    padding: 56px max(18px, calc(50vw - 520px)) 18px; /* <-- more top padding for fixed bars */
-    width: 100%;
-    min-height: 100vh;
-
-    font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    tab-size: 4;
-
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-
-    caret-color: #00ff66;
-  }
-
-  /* Selection highlight like terminal */
-  article::selection {
-    background: rgba(0, 255, 102, 0.25);
-  }
-
-  /* Optional subtle scanline / glow feel */
-  .crt {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    background:
-      radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0) 0px,
-        rgba(0, 0, 0, 0) 2px,
-        rgba(0, 255, 102, 0.03) 3px
-      );
-    mix-blend-mode: screen;
-    opacity: 0.35;
-  }
-
-  /* Keep fixed UI above CRT */
-  .property-badge, .info-bar { z-index: 10000; }
-</style>
-
-<div class="crt"></div>
-<div class="info-bar" id="infoBar">IP: … | Location: … | Word: …</div>
-<div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
-
-<article contenteditable="plaintext-only" spellcheck="false"></article>
-
-<script>
-  const article = document.querySelector('article')
-  const infoBar = document.getElementById('infoBar')
-
-  article.addEventListener('input', debounce(500, save))
-  article.addEventListener('blur', save)
-  addEventListener('DOMContentLoaded', load)
-  addEventListener('hashchange', load)
-  addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))
-  addEventListener('keydown', e => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-      e.preventDefault()
-      download()
+    html {
+      color-scheme: dark;
+      background: #000;
+      color: #00ff66;
     }
-  })
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-  }
 
-  // --- NEW: IP + Geo + Word of the Day ---
-  addEventListener('DOMContentLoaded', () => {
-    refreshInfoBar()
-    // refresh every 30 mins (optional)
-    setInterval(refreshInfoBar, 30 * 60 * 1000)
-  })
+    /* Linux terminal look */
+    body {
+      background: #000;
+      color: #00ff66;
+    }
 
-  async function refreshInfoBar() {
-    const wotd = getWordOfTheDay()
-    let ip = '…'
-    let country = '…'
-    let region = '…'
+    /* Property label (yellow) */
+    .property-badge {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.08em;
+      color: #ffcc00;
+      opacity: 0.9;
+      user-select: none;
+      pointer-events: none;
+      z-index: 10000;
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.25);
+      white-space: nowrap;
+    }
 
-    try {
-      // Free endpoint, no key
-      const r = await fetch('https://ipapi.co/json/')
-      if (r.ok) {
-        const j = await r.json()
-        ip = j.ip ?? ip
-        country = j.country_name ?? country
-        region = j.region ?? j.region_code ?? region
+    /* Info line BELOW the property badge */
+    .info-bar {
+      position: fixed;
+      top: 32px; /* below PROPERTY line */
+      right: 16px;
+      font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.06em;
+      opacity: 0.95;
+      user-select: none;
+      pointer-events: none;
+      z-index: 10000;
+      white-space: nowrap;
+      text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+    }
+
+    /* Color coding */
+    .info-ip { color: #ffcc00; }       /* yellow */
+    .info-country { color: #4da6ff; }  /* blue */
+    .info-region { color: #ff66cc; }   /* pink */
+    .info-word { color: #00ff66; }     /* terminal green */
+
+    article {
+      outline: none;
+      padding: 56px max(18px, calc(50vw - 520px)) 18px; /* room for fixed lines */
+      width: 100%;
+      min-height: 100vh;
+
+      font: 16px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      tab-size: 4;
+
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+
+      caret-color: #00ff66;
+    }
+
+    /* Selection highlight like terminal */
+    article::selection {
+      background: rgba(0, 255, 102, 0.25);
+    }
+
+    /* Optional subtle scanline / glow feel */
+    .crt {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background:
+        radial-gradient(ellipse at center, rgba(0,255,102,0.08) 0%, rgba(0,0,0,0) 60%),
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0px,
+          rgba(0, 0, 0, 0) 2px,
+          rgba(0, 255, 102, 0.03) 3px
+        );
+      mix-blend-mode: screen;
+      opacity: 0.35;
+    }
+
+    /* Keep fixed UI above CRT */
+    .property-badge, .info-bar { z-index: 10000; }
+  </style>
+</head>
+
+<body>
+  <div class="crt"></div>
+
+  <div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
+
+  <div class="info-bar" id="infoBar">
+    <span class="info-ip">IP: …</span> |
+    <span class="info-country">Country: …</span> |
+    <span class="info-region">Region: …</span> |
+    <span class="info-word">Word: …</span>
+  </div>
+
+  <article contenteditable="plaintext-only" spellcheck="false"></article>
+
+  <script>
+    const article = document.querySelector('article')
+    const infoBar = document.getElementById('infoBar')
+
+    article.addEventListener('input', debounce(500, save))
+    article.addEventListener('blur', save)
+    addEventListener('DOMContentLoaded', load)
+    addEventListener('hashchange', load)
+    addEventListener('load', () => new MutationObserver(save).observe(article, {attributeFilter: ['style']}))
+
+    addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        download()
       }
-    } catch (e) {
-      // ignore if blocked/offline
+    })
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
     }
 
-    infoBar.textContent = `IP: ${ip} | Location: ${country}${region && region !== '…' ? ', ' + region : ''} | Word: ${wotd.word} — ${wotd.meaning}`
-  }
+    // --- IP + Geo + Word of the Day ---
+    addEventListener('DOMContentLoaded', () => {
+      refreshInfoBar()
+      setInterval(refreshInfoBar, 30 * 60 * 1000) // refresh every 30 mins
+    })
 
-  function getWordOfTheDay() {
-    // Deterministic "word of the day" (same for everyone each day, offline-safe)
-    const words = [
-      { word: 'lucid', meaning: 'clear; easy to understand' },
-      { word: 'tenacious', meaning: 'persistent; not giving up' },
-      { word: 'serene', meaning: 'calm; peaceful' },
-      { word: 'keen', meaning: 'sharp; eager' },
-      { word: 'resilient', meaning: 'quick to recover' },
-      { word: 'mettle', meaning: 'courage; strength of spirit' },
-      { word: 'apt', meaning: 'appropriate; suitable' },
-      { word: 'vivid', meaning: 'bright; detailed' },
-      { word: 'pragmatic', meaning: 'practical; realistic' },
-      { word: 'candor', meaning: 'honesty; openness' },
-      { word: 'forge', meaning: 'to form by effort' },
-      { word: 'stride', meaning: 'to walk with purpose' },
-      { word: 'finesse', meaning: 'skillful handling' },
-      { word: 'anchor', meaning: 'to secure; stabilize' }
-    ]
+    async function refreshInfoBar() {
+      const wotd = getWordOfTheDay()
+      let ip = '…'
+      let country = '…'
+      let region = '…'
 
-    const d = new Date()
-    // Use UTC date so it changes consistently
-    const key = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
-    const idx = key % words.length
-    return words[idx]
-  }
-  // --- END NEW ---
+      try {
+        const r = await fetch('https://ipapi.co/json/')
+        if (r.ok) {
+          const j = await r.json()
+          ip = j.ip ?? ip
+          country = j.country_name ?? country
+          region = j.region ?? j.region_code ?? region
+        }
+      } catch (e) {}
 
-  async function load() {
-    try {
-      if (location.hash !== '') await set(location.hash)
-      else {
-        await set(localStorage.getItem('hash') ?? '')
-        if (article.textContent) history.replaceState({}, '', await get())
+      infoBar.innerHTML = `
+        <span class="info-ip">IP: ${escapeHtml(ip)}</span> |
+        <span class="info-country">Country: ${escapeHtml(country)}</span> |
+        <span class="info-region">Region: ${escapeHtml(region)}</span> |
+        <span class="info-word">Word: ${escapeHtml(wotd.word)} — ${escapeHtml(wotd.meaning)}</span>
+      `
+    }
+
+    function getWordOfTheDay() {
+      // Deterministic "word of the day" (same for everyone each day, offline-safe)
+      const words = [
+        { word: 'lucid', meaning: 'clear; easy to understand' },
+        { word: 'tenacious', meaning: 'persistent; not giving up' },
+        { word: 'serene', meaning: 'calm; peaceful' },
+        { word: 'keen', meaning: 'sharp; eager' },
+        { word: 'resilient', meaning: 'quick to recover' },
+        { word: 'mettle', meaning: 'courage; strength of spirit' },
+        { word: 'apt', meaning: 'appropriate; suitable' },
+        { word: 'vivid', meaning: 'bright; detailed' },
+        { word: 'pragmatic', meaning: 'practical; realistic' },
+        { word: 'candor', meaning: 'honesty; openness' },
+        { word: 'forge', meaning: 'to form by effort' },
+        { word: 'stride', meaning: 'to walk with purpose' },
+        { word: 'finesse', meaning: 'skillful handling' },
+        { word: 'anchor', meaning: 'to secure; stabilize' }
+      ]
+
+      const d = new Date()
+      const key = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
+      const idx = key % words.length
+      return words[idx]
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+      }[c]))
+    }
+    // --- END IP + Geo + WOTD ---
+
+    async function load() {
+      try {
+        if (location.hash !== '') await set(location.hash)
+        else {
+          await set(localStorage.getItem('hash') ?? '')
+          if (article.textContent) history.replaceState({}, '', await get())
+          article.focus()
+        }
+      } catch (e) {
+        article.textContent = ''
+        article.removeAttribute('style')
         article.focus()
       }
-    } catch (e) {
-      article.textContent = ''
-      article.removeAttribute('style')
-      article.focus()
+      updateTitle()
     }
-    updateTitle()
-  }
 
-  async function save() {
-    const hash = await get()
-    if (location.hash !== hash) history.replaceState({}, '', hash)
-    try { localStorage.setItem('hash', hash) } catch (e) {}
-    updateTitle()
-  }
-
-  async function set(hash) {
-    if (!hash) return
-    const [content, style] = (await decompress(hash.slice(1))).split('\x00')
-    article.textContent = content
-    if (style) article.setAttribute('style', style)
-  }
-
-  async function get() {
-    const style = article.getAttribute('style')
-    const content = article.textContent + (style !== null ? '\x00' + style : '')
-    return '#' + await compress(content)
-  }
-
-  function updateTitle() {
-    const match = article.textContent.match(/^\n*#(.+)\n/)
-    document.title = match?.[1] ?? 'copy/paste here - JRM2026'
-  }
-
-  async function compress(string) {
-    const byteArray = new TextEncoder().encode(string)
-    const stream = new CompressionStream('deflate-raw')
-    const writer = stream.writable.getWriter()
-    writer.write(byteArray)
-    writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
-    return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
-  }
-
-  async function decompress(b64) {
-    const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
-    const stream = new DecompressionStream('deflate-raw')
-    const writer = stream.writable.getWriter()
-    writer.write(byteArray)
-    writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
-    return new TextDecoder().decode(buffer)
-  }
-
-  function debounce(ms, fn) {
-    let timer
-    return (...args) => {
-      clearTimeout(timer)
-      timer = setTimeout(() => fn(...args), ms)
+    async function save() {
+      const hash = await get()
+      if (location.hash !== hash) history.replaceState({}, '', hash)
+      try { localStorage.setItem('hash', hash) } catch (e) {}
+      updateTitle()
     }
-  }
 
-  async function download() {
-    updateTitle()
-    const doc = document.documentElement.cloneNode(true)
-    doc.querySelectorAll('script').forEach(s => s.remove())
-    doc.querySelector('article').removeAttribute('contenteditable')
+    async function set(hash) {
+      if (!hash) return
+      const [content, style] = (await decompress(hash.slice(1))).split('\x00')
+      article.textContent = content
+      if (style) article.setAttribute('style', style)
+    }
 
-    // Optional: remove dynamic IP/location text on export (keep if you want)
-    // doc.getElementById('infoBar')?.remove()
+    async function get() {
+      const style = article.getAttribute('style')
+      const content = article.textContent + (style !== null ? '\x00' + style : '')
+      return '#' + await compress(content)
+    }
 
-    const html = '<!DOCTYPE html>\n' + doc.outerHTML
+    function updateTitle() {
+      const match = article.textContent.match(/^\n*#(.+)\n/)
+      document.title = match?.[1] ?? 'copy/paste here - JRM2026'
+    }
 
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await showSaveFilePicker({
-          suggestedName: document.title + '.html',
-          types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
-        })
-        const writable = await handle.createWritable()
-        await writable.write(html)
-        await writable.close()
-        return
-      } catch (e) {
-        if (e.name === 'AbortError') return
+    async function compress(string) {
+      const byteArray = new TextEncoder().encode(string)
+      const stream = new CompressionStream('deflate-raw')
+      const writer = stream.writable.getWriter()
+      writer.write(byteArray)
+      writer.close()
+      const buffer = await new Response(stream.readable).arrayBuffer()
+      return new Uint8Array(buffer).toBase64({alphabet: 'base64url'})
+    }
+
+    async function decompress(b64) {
+      const byteArray = Uint8Array.fromBase64(b64, {alphabet: 'base64url'})
+      const stream = new DecompressionStream('deflate-raw')
+      const writer = stream.writable.getWriter()
+      writer.write(byteArray)
+      writer.close()
+      const buffer = await new Response(stream.readable).arrayBuffer()
+      return new TextDecoder().decode(buffer)
+    }
+
+    function debounce(ms, fn) {
+      let timer
+      return (...args) => {
+        clearTimeout(timer)
+        timer = setTimeout(() => fn(...args), ms)
       }
     }
 
-    const blob = new Blob([html], {type: 'text/html'})
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = document.title + '.html'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-</script>
+    async function download() {
+      updateTitle()
+      const doc = document.documentElement.cloneNode(true)
+      doc.querySelectorAll('script').forEach(s => s.remove())
+      doc.querySelector('article').removeAttribute('contenteditable')
+      const html = '<!DOCTYPE html>\n' + doc.outerHTML
+
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await showSaveFilePicker({
+            suggestedName: document.title + '.html',
+            types: [{ description: 'HTML file', accept: {'text/html': ['.html']} }],
+          })
+          const writable = await handle.createWritable()
+          await writable.write(html)
+          await writable.close()
+          return
+        } catch (e) {
+          if (e.name === 'AbortError') return
+        }
+      }
+
+      const blob = new Blob([html], {type: 'text/html'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = document.title + '.html'
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  </script>
+</body>
+</html>
