@@ -16,13 +16,11 @@
       color: #00ff66;
     }
 
-    /* Linux terminal look */
     body {
       background: #000;
       color: #00ff66;
     }
 
-    /* Property label (yellow) */
     .property-badge {
       position: fixed;
       top: 12px;
@@ -38,30 +36,60 @@
       white-space: nowrap;
     }
 
-    /* Info line BELOW the property badge */
     .info-bar {
       position: fixed;
-      top: 32px; /* below PROPERTY line */
+      top: 32px;
       right: 16px;
       font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       letter-spacing: 0.06em;
       opacity: 0.95;
-      user-select: none;
-      pointer-events: none;
       z-index: 10000;
       white-space: nowrap;
       text-shadow: 0 0 10px rgba(0, 255, 102, 0.18);
+
+      /* IMPORTANT: allow selecting/copying */
+      user-select: text;
+      pointer-events: auto;
     }
 
-    /* Color coding */
-    .info-ip { color: #ffcc00; }       /* yellow */
-    .info-country { color: #4da6ff; }  /* blue */
-    .info-region { color: #ff66cc; }   /* pink */
-    .info-word { color: #00ff66; }     /* terminal green */
+    .info-ip { color: #ffcc00; }
+    .info-country { color: #4da6ff; }
+    .info-region { color: #ff66cc; }
+    .info-word { color: #00ff66; }
+
+    /* Click-to-select value styling */
+    .selectable {
+      cursor: text;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.18);
+      text-underline-offset: 2px;
+    }
+
+    /* Tiny copy buttons */
+    .copy-btn {
+      margin-left: 6px;
+      padding: 1px 6px;
+      border: 1px solid rgba(0,255,102,0.35);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.6);
+      color: #00ff66;
+      font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+    .copy-btn:hover { border-color: rgba(0,255,102,0.7); }
+    .copy-btn:active { transform: translateY(1px); }
+
+    /* Small copied feedback */
+    .copied {
+      margin-left: 6px;
+      opacity: 0.85;
+      font-size: 10px;
+    }
 
     article {
       outline: none;
-      padding: 56px max(18px, calc(50vw - 520px)) 18px; /* room for fixed lines */
+      padding: 56px max(18px, calc(50vw - 520px)) 18px;
       width: 100%;
       min-height: 100vh;
 
@@ -77,12 +105,10 @@
       caret-color: #00ff66;
     }
 
-    /* Selection highlight like terminal */
     article::selection {
       background: rgba(0, 255, 102, 0.25);
     }
 
-    /* Optional subtle scanline / glow feel */
     .crt {
       position: fixed;
       inset: 0;
@@ -100,7 +126,6 @@
       opacity: 0.35;
     }
 
-    /* Keep fixed UI above CRT */
     .property-badge, .info-bar { z-index: 10000; }
   </style>
 </head>
@@ -110,18 +135,41 @@
 
   <div class="property-badge">PROPERTY OF JRM2026 - i@malumay.com</div>
 
+  <!-- Build the info bar as real DOM so text is selectable/copyable -->
   <div class="info-bar" id="infoBar">
-    <span class="info-ip">IP: …</span> |
-    <span class="info-country">Country: …</span> |
-    <span class="info-region">Region: …</span> |
-    <span class="info-word">Word: …</span>
+    <span class="info-ip">
+      IP: <span id="ipVal" class="selectable" title="Click to select">…</span>
+      <button class="copy-btn" data-copy="ipVal" title="Copy IP">copy</button>
+      <span class="copied" id="ipCopied" hidden>copied</span>
+    </span>
+    | <span class="info-country">
+      Country: <span id="countryVal" class="selectable" title="Click to select">…</span>
+      <button class="copy-btn" data-copy="countryVal" title="Copy Country">copy</button>
+      <span class="copied" id="countryCopied" hidden>copied</span>
+    </span>
+    | <span class="info-region">
+      Region: <span id="regionVal" class="selectable" title="Click to select">…</span>
+      <button class="copy-btn" data-copy="regionVal" title="Copy Region">copy</button>
+      <span class="copied" id="regionCopied" hidden>copied</span>
+    </span>
+    | <span class="info-word">
+      Word: <span id="wordVal">…</span>
+    </span>
   </div>
 
   <article contenteditable="plaintext-only" spellcheck="false"></article>
 
   <script>
     const article = document.querySelector('article')
-    const infoBar = document.getElementById('infoBar')
+
+    const ipVal = document.getElementById('ipVal')
+    const countryVal = document.getElementById('countryVal')
+    const regionVal = document.getElementById('regionVal')
+    const wordVal = document.getElementById('wordVal')
+
+    const ipCopied = document.getElementById('ipCopied')
+    const countryCopied = document.getElementById('countryCopied')
+    const regionCopied = document.getElementById('regionCopied')
 
     article.addEventListener('input', debounce(500, save))
     article.addEventListener('blur', save)
@@ -140,14 +188,71 @@
       navigator.serviceWorker.register('sw.js')
     }
 
+    // --- Make values click-to-select ---
+    for (const el of [ipVal, countryVal, regionVal]) {
+      el.addEventListener('click', () => selectText(el))
+    }
+
+    // --- Copy buttons ---
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const id = btn.getAttribute('data-copy')
+        const target = document.getElementById(id)
+        const text = (target?.textContent ?? '').trim()
+        if (!text) return
+
+        await copyToClipboard(text)
+
+        // feedback
+        const map = { ipVal: ipCopied, countryVal: countryCopied, regionVal: regionCopied }
+        const badge = map[id]
+        if (badge) flashCopied(badge)
+      })
+    })
+
+    function selectText(el) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+
+    async function copyToClipboard(text) {
+      // Prefer modern clipboard API
+      if (navigator.clipboard?.writeText) {
+        try { await navigator.clipboard.writeText(text); return } catch (e) {}
+      }
+      // Fallback
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.setAttribute('readonly', '')
+      ta.style.position = 'fixed'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+    }
+
+    function flashCopied(el) {
+      el.hidden = false
+      clearTimeout(el._t)
+      el._t = setTimeout(() => (el.hidden = true), 900)
+    }
+
     // --- IP + Geo + Word of the Day ---
     addEventListener('DOMContentLoaded', () => {
       refreshInfoBar()
-      setInterval(refreshInfoBar, 30 * 60 * 1000) // refresh every 30 mins
+      setInterval(refreshInfoBar, 30 * 60 * 1000)
     })
 
     async function refreshInfoBar() {
       const wotd = getWordOfTheDay()
+
       let ip = '…'
       let country = '…'
       let region = '…'
@@ -162,16 +267,14 @@
         }
       } catch (e) {}
 
-      infoBar.innerHTML = `
-        <span class="info-ip">IP: ${escapeHtml(ip)}</span> |
-        <span class="info-country">Country: ${escapeHtml(country)}</span> |
-        <span class="info-region">Region: ${escapeHtml(region)}</span> |
-        <span class="info-word">Word: ${escapeHtml(wotd.word)} — ${escapeHtml(wotd.meaning)}</span>
-      `
+      // Update text nodes (selectable!)
+      ipVal.textContent = ip
+      countryVal.textContent = country
+      regionVal.textContent = region
+      wordVal.textContent = `${wotd.word} — ${wotd.meaning}`
     }
 
     function getWordOfTheDay() {
-      // Deterministic "word of the day" (same for everyone each day, offline-safe)
       const words = [
         { word: 'lucid', meaning: 'clear; easy to understand' },
         { word: 'tenacious', meaning: 'persistent; not giving up' },
@@ -193,13 +296,6 @@
       const key = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
       const idx = key % words.length
       return words[idx]
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;',
-        '"': '&quot;', "'": '&#39;'
-      }[c]))
     }
     // --- END IP + Geo + WOTD ---
 
